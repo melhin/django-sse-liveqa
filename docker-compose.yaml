@@ -1,0 +1,26 @@
+version: "3.4"
+
+volumes:
+  pravham_pg_data: {}
+
+services:
+  redis:
+    # Unlike the official Redis image, Bitnami's version is simpler to set up using environment variables
+    image: bitnami/redis:latest
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - "6379:6379"
+  asyncapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - "redis"
+    environment:
+      REDIS_DSN: redis://redis:6379/1
+      SECRET_KEY: "never-use-this-in-production"
+    command:
+      - main
+    ports:
+      - "8002:8002"
