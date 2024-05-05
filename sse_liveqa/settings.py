@@ -175,3 +175,8 @@ LOGGING = {
         },
     },
 }
+
+BASIC_USER = Value(environ_prefix=None, environ_name="BASIC_USER", default="User")
+BASIC_PASSWORD = Value(
+    environ_prefix=None, environ_name="BASIC_PASSWORD", default="Password"
+)

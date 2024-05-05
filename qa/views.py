@@ -12,6 +12,7 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
+from qa.blocker import view_basicauth
 from qa.external import QA, STREAM_MESSAGE_PREFIX, DataToSend
 
 logger = getLogger(__name__)
@@ -22,6 +23,7 @@ class QAForm(forms.Form):
     question = forms.CharField()
 
 
+@view_basicauth
 @require_http_methods(["GET"])
 async def start(request: HttpRequest, *args, **kwargs):
     return render(
@@ -30,6 +32,7 @@ async def start(request: HttpRequest, *args, **kwargs):
     )
 
 
+@view_basicauth
 @require_http_methods(["GET"])
 async def questions(request: HttpRequest, name: str, *args, **kwargs):
     stream_server = reverse("realtime:qa-listen")
@@ -57,15 +60,7 @@ async def questions(request: HttpRequest, name: str, *args, **kwargs):
         },
     )
 
-
-@require_http_methods(["GET"])
-async def start_activity(request: HttpRequest, *args, **kwargs):
-    return render(
-        request,
-        "qa/create.html",
-    )
-
-
+@view_basicauth
 @csrf_exempt
 @require_http_methods(["POST"])
 async def create_question(request: HttpRequest, *args, **kwargs):
@@ -125,6 +120,7 @@ async def stream_new_activity(request: HttpRequest, *args, **kwargs):
     return StreamingHttpResponse(streamed_events(), content_type="text/event-stream")
 
 
+@view_basicauth
 @require_http_methods(["GET"])
 async def get_new_questions(
     request: HttpRequest, last_id_returned: str, *args, **kwargs

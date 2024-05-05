@@ -10,6 +10,6 @@ stop:
 logs:
 	$(COMPOSE) logs --follow --tail 1000
 local-setup:
-	${COMPOSE} up redis
+	${COMPOSE} up redis -d
 local:
 	bash docker-entrypoint.sh local
