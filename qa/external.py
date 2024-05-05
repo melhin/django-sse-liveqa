@@ -35,7 +35,7 @@ class Singleton(type):
 class AsyncRedisConnectionFactory(metaclass=Singleton):
     """A singleton instance for redis connections"""
 
-    def __init__(self, max_connections=5):
+    def __init__(self, max_connections=2**31):
         logger.info("Connecting to redis using a connection pool")
         self.connection_pool = aredis.ConnectionPool.from_url(
             url=settings.REDIS_DSN, max_connections=max_connections
