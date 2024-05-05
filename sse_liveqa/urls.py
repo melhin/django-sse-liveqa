@@ -19,6 +19,9 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import include, path
 
+from sse_liveqa.views import health
+
 urlpatterns = [
+    path("health/", health, name="health"),
     path("", include("qa.urls")),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
