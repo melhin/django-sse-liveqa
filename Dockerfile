@@ -44,7 +44,8 @@ RUN if [ ! -z "$ADD_DEV_DEPS" ]; \
 # Collect static files
 COPY . /code
 RUN python manage.py collectstatic --noinput
-RUN chmod +x ./docker-entrypoint.sh
+COPY ./staticfiles /code/staticfiles
 
+RUN chmod +x ./docker-entrypoint.sh
 ENTRYPOINT [ "./docker-entrypoint.sh" ]
 CMD ["main"]
