@@ -23,6 +23,30 @@ class QAForm(forms.Form):
     question = forms.CharField()
 
 
+@require_http_methods(["GET"])
+async def stream_timer(request: HttpRequest, *args, **kwargs):
+    async def streamed_events() -> AsyncGenerator[str, None]:
+        """Listen for events and generate an SSE message for each event"""
+        connection_id = uuid.uuid4()
+        events_count = 0
+
+        try:
+            logging.info(f"{connection_id}: Connecting to stream")
+            while True:
+                events_count += 1
+                event = "event: new\n"
+                event += f"data: {events_count}\n\n"
+                logging.info(f"{connection_id}: Sent events. {events_count}")
+                yield event
+                await asyncio.sleep(1)
+
+        except asyncio.CancelledError:
+            logging.info(f"{connection_id}: Disconnected after events. {events_count}")
+            raise
+
+    return StreamingHttpResponse(streamed_events(), content_type="text/event-stream")
+
+
 @view_basicauth
 @require_http_methods(["GET"])
 async def start(request: HttpRequest, *args, **kwargs):

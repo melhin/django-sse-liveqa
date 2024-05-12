@@ -6,11 +6,13 @@ from qa.views import (
     questions,
     start,
     stream_new_activity,
+    stream_timer,
 )
 
 app_name = "realtime"
 
 urlpatterns = [
+    path("timer/", stream_timer, name="timer"),
     path("qa/listen/", stream_new_activity, name="qa-listen"),
     path("qa/send/", create_question, name="qa-send"),
     path("qa/<str:name>/", questions, name="qa-questions"),
