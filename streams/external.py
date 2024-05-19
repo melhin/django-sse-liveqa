@@ -9,14 +9,16 @@ from django.conf import settings
 logger = logging.getLogger(__name__)
 
 STREAM_MESSAGE_PREFIX = "realtime-qa:"
+POST_STREAM = "post-stream"
 ONLINE_STREAM = "online-qa"
 LISTEN_TIMEOUT = 5000 * 3
 
 
 @dataclass
 class DataToSend:
-    name: str
-    question: str
+    account: str
+    content: str
+    created_at: str
 
 
 @dataclass
@@ -52,18 +54,10 @@ class AsyncRedisConnectionFactory(metaclass=Singleton):
         return aredis.Redis(connection_pool=self.connection_pool)
 
 
-class QA:
+class PostService:
     def __init__(self, connection_factory=AsyncRedisConnectionFactory) -> None:
         self.connection_factory = connection_factory()
 
-    async def send_question_to_stream(
-        self,
-        stream_name: str,
-        message: DataToSend,
-    ):
-        aredis = await self.connection_factory.get_connection()
-        await aredis.xadd(name=stream_name, fields={"v": json.dumps(asdict(message))})
-        logger.info(f"Sent message to {stream_name}: {message}")
 
     async def listen(
         self, stream_name: str, last_id_returned: str, timeout=LISTEN_TIMEOUT
@@ -78,15 +72,14 @@ class QA:
 
     async def get_messages_from_stream(
         self,
-        stream_name: str,
         last_id_returned: str,
     ):
         aredis = await self.connection_factory.get_connection()
-        logger.info(f"{stream_name} {last_id_returned}")
+        logger.info(f"{POST_STREAM} {last_id_returned}")
         if not last_id_returned:
-            return await aredis.xrevrange(stream_name, "+", "-", count=10)
+            return await aredis.xrevrange(POST_STREAM, "+", "-", count=10)
         else:
-            return await aredis.xrange(stream_name, f"{last_id_returned}", "+")
+            return await aredis.xrange(POST_STREAM, f"{last_id_returned}", "+")
 
     async def send_status_to_stream(
         self,
@@ -98,7 +91,6 @@ class QA:
 
     async def listen_on_multiple_streams(
         self,
-        question_stream: str,
         last_id_returned: str,
         timeout=LISTEN_TIMEOUT,
     ):
@@ -109,7 +101,7 @@ class QA:
         return await aredis.xread(
             count=1,
             streams={
-                question_stream: last_id_returned,
+                POST_STREAM: last_id_returned,
                 ONLINE_STREAM: last_id_returned,
             },
             block=timeout,

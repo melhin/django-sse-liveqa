@@ -13,7 +13,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from qa.blocker import view_basicauth
-from qa.external import QA, STREAM_MESSAGE_PREFIX, DataToSend
+from qa.external import (
+    ONLINE_STREAM,
+    QA,
+    STREAM_MESSAGE_PREFIX,
+    DataToSend,
+    OnlineStatus,
+)
 
 logger = getLogger(__name__)
 
@@ -139,6 +145,56 @@ async def stream_new_activity(request: HttpRequest, *args, **kwargs):
 
         except asyncio.CancelledError:
             logging.info(f"{connection_id}: Disconnected after events. {events_count}")
+            raise
+
+    return StreamingHttpResponse(streamed_events(), content_type="text/event-stream")
+
+
+@require_http_methods(["GET"])
+async def stream_new_activity_and_presence(request: HttpRequest, *args, **kwargs):
+
+    async def streamed_events() -> AsyncGenerator[str, None]:
+        """Listen for events and generate an SSE message for each event"""
+        connection_id = str(uuid.uuid4())
+        events_count = 0
+        listener = QA()
+        last_id_returned = None
+        stream_name = f"{STREAM_MESSAGE_PREFIX}common"
+        await listener.send_status_to_stream(
+            message=OnlineStatus(user=connection_id, status="online")
+        )
+
+        try:
+            while True:
+                message = await listener.listen_on_multiple_streams(
+                    question_stream=stream_name,
+                    last_id_returned=last_id_returned,
+                )
+                if message:
+                    last_id_returned = message[0][1][0][0]
+                    if message[0][0].decode("utf-8") == ONLINE_STREAM:
+                        dumped_data = message[0][1][0][1][b"v"]
+                    else:
+                        dumped_data = json.dumps(
+                            {"new_message_id": last_id_returned.decode("utf-8")}
+                        )
+                    event = "event: new-notification\n"
+                    event += f"data: {dumped_data}\n\n"
+                    events_count += 1
+                    logging.info(f"{connection_id}: Sent events. {events_count}")
+                    yield event
+                else:
+                    event = "event: heartbeat\n"
+                    event += "data: ping\n\n"
+                    events_count += 1
+                    logging.info(f"{connection_id}: Sending heartbeats")
+                    yield event
+
+        except asyncio.CancelledError:
+            logging.info(f"{connection_id}: Disconnected after events. {events_count}")
+            await listener.send_status_to_stream(
+                message=OnlineStatus(user=connection_id, status="offline")
+            )
             raise
 
     return StreamingHttpResponse(streamed_events(), content_type="text/event-stream")

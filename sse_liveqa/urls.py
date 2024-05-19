@@ -23,5 +23,6 @@ from sse_liveqa.views import health
 
 urlpatterns = [
     path("health/", health, name="health"),
-    path("", include("qa.urls")),
+    path("qa/", include("qa.urls")),
+    path("streams/", include("streams.urls")),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
