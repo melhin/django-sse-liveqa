@@ -124,3 +124,4 @@ storage/*
 .ruff_cache
 
 staticfiles
+db.sqlite3
