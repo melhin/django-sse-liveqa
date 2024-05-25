@@ -32,3 +32,4 @@ make start
 Don't forget to add MASTODON_BEARER_TOKEN in your .env. Also maybe SECRET_KEY (for django)
 
 ### See the stream
+http://127.0.0.1:8002/streams/
