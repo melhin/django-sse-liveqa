@@ -10,6 +10,8 @@ def view_basicauth(func):
 
     @functools.wraps(func)
     async def inner(request, realm="Accessing site", *args, **kwargs):
+        if not all([BASIC_PASSWORD, BASIC_USER]):
+            return await func(request, *args, **kwargs)
         if "HTTP_AUTHORIZATION" in request.META:
             auth = request.META["HTTP_AUTHORIZATION"].split()
             if len(auth) == 2:
